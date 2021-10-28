@@ -1,0 +1,122 @@
+---
+title: "a3_task3_alessandra_puig-santana"
+author: "Alessandra Puig-Santana"
+date: "10/28/2021"
+output: html_document
+---
+# Overview
+
+Citation: 
+
+```{r setup, include= TRUE, warning = FALSE, message = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(here)
+library(janitor)
+library(kableExtra)
+library(lubridate)
+```
+
+Read in Data:
+```{r}
+urchins <- read_csv(here("data", "urchins.csv")) %>%
+  clean_names() # Turns it to lower_case_snake
+
+
+```
+
+## Section 1
+Comparing purple and red urchins.
+
+#### Creating a smaller subset
+```{r}
+sub_urchins <- urchins %>%
+  select(size, common_name)
+```
+
+
+#### Data visualization
+Compare the distribution of sizes between purple and red urchins with a finalized, faceted histogram. You will probably want to reduce the number of bins (10). Finalize your graphs and add a figure caption.
+```{r, fig.cap = "Figure 1: In this histogram, we are comparing the differences in sizes (cm) in purple and red urchins collected in Santa Barbara."}
+ggplot(data = sub_urchins,
+       aes(x = size)) +
+  geom_histogram(bins = 11, 
+                 aes(fill = common_name),
+                 show.legend = FALSE) +
+  facet_wrap(~common_name) +
+  scale_fill_manual(values = c("Purple Urchin" = "purple",
+                               "Red Urchin" = "red")) +
+  labs(title = "Comparing purple and red urchin sizes in Santa Barbara (cm)",
+       x = "Size (cm)",
+       y = "Sea Urchin count")
+```
+#### Summary Statistics Table 
+Create a finalized summary table that contains the following statistics for purple and red urchins (still ignoring site as a variable, but including species as a grouping variable): mean, median, standard deviation, and sample size.
+
+```{r, fig.cap = "Table 1: This table contains the summary statistics comparing mean (cm), standard deviation (cm), median (cm), and sample sizes for purple and red urchins collected"}
+urchins_stats <- sub_urchins %>%
+  group_by(common_name) %>%
+  summarize(mean_size = round(mean(size), 2),
+            sd_size = round(sd(size), 2),
+            median_size = round(median(size), 2),
+            sample_size = n())
+
+urchins_stats %>%
+  kable(col.names = c("Species",
+                      "Mean Size (cm)",
+                      "Standard Deviation (cm)",
+                      "Median (cm)",
+                      "Sample Size"))
+
+urchins_stats
+```
+
+Description: 
+- red urchin population has a larger distribution in sizes (cm) in comparison to the purple urchin population.
+- Difference in means (subtract the means)
+- The median is vastly different. 
+- We can assume that our sample populations were collected from populations with different means. 
+
+## Section 2
+#### Explore purple urchin counts by site and year
+```{r}
+purple_urchins <- urchins %>%
+  filter(common_name == "Purple Urchin") %>%
+  mutate(date = mdy(date)) %>%
+  mutate(year = year(date)) %>%
+  mutate(site_name = case_when(
+    site %in% c("NAPL") ~ "Naples Reef",
+    site %in% c("AQUE") ~ "Arroyo Quemado Reef",
+    site %in% c("CARP") ~ "Carpinteria Reef",
+    site %in% c("MOHK") ~ "Mohawk Reef",
+    site %in% c("IVEE") ~ "Isla Vista Reef"
+  ))
+
+total_purple <- purple_urchins %>%
+  group_by(site, year) %>%
+  summarize(count = n())
+```
+
+#### Data Visualization 
+```{r, fig.cap = "Figure 2: This multiple line graph demonstrates the amount of purple urchines collected at each of the sites from 2010 to 2020."}
+ggplot(total_purple, aes(x = year,
+                         y = count)) +
+  geom_line(aes(color = site)) +
+  theme_minimal() +
+  labs(x = "Year",
+       y = "Sample Count (number of urchins)",
+       title = "Total amount of Purple Urchins at the different sites") +
+  scale_color_discrete(name = "Site",
+                       labels = c("AQUE" = "Arroyo Quemado Reef",
+                                  "CARP" = "Carpinteria Reef",
+                                  "IVEE" = "Isla Vista Reef",
+                                  "MOHK" = "Mohawk Reef",
+                                  "NAPL" = "Naples Reef")) +
+  scale_color_manual(values = c("AQUE" = "red",
+                               "CARP" = "blue",
+                               "IVEE" = "orange",
+                               "MOHK" = "green",
+                               "NAPL" = "black"))
+```
+Add text below your graph: do you think this graph reflects changes in the purple urchin population? What would you have to take into account to determine whether the changes in counts by year are reflective of actual changes in urchin population? What else could explain the changes in number of purple urchins observed? 
