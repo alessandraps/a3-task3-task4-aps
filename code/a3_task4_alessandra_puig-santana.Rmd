@@ -1,0 +1,94 @@
+---
+title: "Assignment 3, Task 4"
+author: "Alessandra Puig-Santana"
+date: "10/28/2021"
+output: html_document
+---
+# Overview
+This code wrangles and visualizes the purple urchin population in Naples Reef in Santa Barbara, CA collected by Santa Barbara Coastal Long Term Ecological Research program divers. We practiced creating a descriptive statistics table comparing the treatments used on purple urchin populations. 
+
+##### Citation: 
+Reed, D. 2020. SBC LTER: Reef: Long-term experiment: Kelp removal: Urchin size frequency distribution ver 20. Environmental Data Initiative. https://doi.org/10.6073/pasta/5a1e9ef03aa47bd2225c0bb98a02a63b.
+
+### Set up chunk
+```{r setup, include=TRUE, warning = FALSE, message = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+# Setting up packages
+library(tidyverse)
+library(here)
+library(janitor)
+library(lubridate)
+library(kableExtra)
+```
+
+### Read in data
+```{r}
+# Read in data and convert to lower_case_snake
+urchins <- read_csv(here("data", "urchins.csv")) %>%
+  clean_names
+```
+
+## Data Wrangling 
+Created a subset data frame that only contains the observations in 2010 for the Purple Urchin population in the Naples Reef. 
+```{r}
+purple_naples <- urchins %>%
+  filter(common_name == "Purple Urchin") %>% # Only selecting purple urchin
+  filter(site == "NAPL") %>% # Only selecting Naples Reef
+  mutate(date = mdy(date)) %>%
+  mutate(year = year(date)) %>% # Creating new year column
+  filter(year == 2010) %>% # Only selecting 2010.
+  mutate(treatment = case_when(treatment == "ANNUAL" ~ "Experimental", # Annual Kelp removal
+                               treatment == "CONTROL" ~ "Control")) # No kelp removal
+```
+
+## Data Visualization
+### Figure 1: Histogram
+Faceted histogram size distribution of purple urchins at Naples in 2010, separated by treatment (Control and Annual), to assess normality.
+```{r}
+ggplot(data = purple_naples, aes(x = size)) +
+  geom_histogram(bins = 12,
+                 aes(fill = treatment),
+                 show.legend = FALSE) + # Not showing legend
+  facet_wrap(~treatment) + # Separated by treatment
+  labs(title = "Figure 1: Size distribution of Purple Urchins at Naples Reef in 2010",
+       y = "Observation count",
+       x = "Size (cm)") +
+  theme_minimal() 
+```
+
+### Figure 2: QQ-Plot
+QQ-plots for the size distribution of purple urchins at Naples in 2010, separated by treatment (Control and Annual), to assess normality.
+```{r}
+ggplot(data = purple_naples, aes(sample = size, 
+                                 color = treatment)) +
+  geom_qq(show.legend = FALSE) + # Don't show legend
+  facet_wrap(~treatment) + # Divide by treatment
+  theme_minimal() +
+  labs(title = "Figure 2: Size Distribution of Purple Urchins in Naples Reef in 2010")
+```
+
+
+
+
+
+##### Figure 1 and 2 Description
+
+The histogram visualizes how normally distributed the sample, with a bit of a skewed to the left. Meanwhile, the qq-plot helps in seeing how linear these observations are. The experimental treatment group demonstrates more variability in their size (cm) distribution and shows a strong trend for smaller sizes (around 3 cm), this can be due to the stress of the removal of kelp. The control treatment group demonstrates a more steady normal distribution. Based on the qq-plot, it shows that the observations in size distribution (cm) is more linear. 
+
+## Summary Statistics
+A finalized summary table of descriptive statistics (mean, standard deviation, and sample size) for both groups by treatment.
+```{r}
+purple_urchins_stats <- purple_naples %>%
+  group_by(treatment) %>% # Grouping by treatment
+  summarize(mean_size = round(mean(size), 2), # Calculating mean
+            sd_size = round(sd(size), 2), # Calculating standard deviation
+            sample_size = n()) # Calculating sample size
+
+purple_urchins_stats %>% # Renaming column names
+  kable(col.names = c("Species", # Keep same order as calculated in summarize() function 
+                      "Mean Size (cm)",
+                      "Standard Deviation (cm)",
+                      "Sample Size"),
+        caption = "Table 1: This table contains the summary statistics comparing mean (cm), standard deviation (cm), and sample for Purple Urchins in Naples Reef in 2010 for the control and experimental treatments.") 
+```
+
